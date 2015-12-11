@@ -1,0 +1,76 @@
+#!/bin/bash
+# update wireless-testing tree
+#
+# aborts with non-zero status if manual intervention is required.
+
+function merge_tree()
+{
+	local tree=$1
+	git merge --no-ff --no-edit --rerere-autoupdate $tree/master
+	ret=$?
+	if [[ ! $ret -eq 0 ]]; then
+		# check if rerere fixed it
+		if [[ $(git rerere diff | wc -l) -eq 0 ]]; then
+			git commit --no-edit
+			return
+		else
+			exit 1
+		fi
+	fi
+}
+
+trees="wireless-drivers wireless-drivers-next mac80211 mac80211-next"
+
+# fetch all the trees
+for tree in linus $trees; do
+	git fetch $tree
+done
+
+# did anything change?
+old_linus=$(cat .wtref.linus)
+
+changed=0
+latest=$(git tag -l 'v*' --sort='-v:refname' | head -1)
+if [[ $latest != $old_linus ]]; then
+	echo "linus is updated"
+	changed=1
+fi
+for tree in $trees; do
+	old=$(cat .wtref.${tree})
+	if [[ $old != $(git show-ref -s $tree/master) ]]; then
+		echo "$tree is updated"
+		changed=1
+	fi
+done
+
+if [[ $changed -eq 0 ]]; then
+	echo "No changes upstream, nothing to do!"
+	exit 0
+fi
+
+# Start with latest linus tag
+git reset --hard $latest
+
+# Merge wireless trees
+for tree in $trees; do
+	merge_tree $tree || exit 1
+done
+
+# label the build
+echo '-wt' > localversion-wireless-testing
+git add localversion-wireless-testing
+git commit -m 'Add localversion to identify builds from this tree'
+
+# everything merged, compile test and push result
+make -j8 || exit 2
+
+# all good, publish
+echo $latest > .wtref.linus
+for tree in $trees; do
+	git show-ref -s $tree/master > .wtref.${tree}
+done
+
+tag=wt-`date +%Y-%m-%d`
+git tag $tag
+git push origin +master
+git push origin $tag
