@@ -31,6 +31,16 @@ old_linus=$(cat .wtref.linus)
 
 changed=0
 latest=$(git tag -l 'v*' --sort='-v:refname' | head -1)
+
+# git doesn't sort releases properly with respect to RCs; check for
+# the actual release
+ver=${latest/-rc*/}
+git show-ref -s $ver > /dev/null
+ret=$?
+if [[ $ret -eq 0 ]]; then
+	latest=$ver
+fi
+
 if [[ $latest != $old_linus ]]; then
 	echo "linus is updated"
 	changed=1
