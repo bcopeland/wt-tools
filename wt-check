@@ -1,0 +1,23 @@
+#!/bin/bash
+# run static analysis for today's tag, and also generate the diff from the
+# previous tag.
+
+last_two_tags=$(git tag -l 'wt-*' --sort=-refname | head -2)
+this_tag=$(echo "$last_two_tags" | sed -n -e '1p')
+last_tag=$(echo "$last_two_tags" | sed -n -e '2p')
+
+echo "This tag: $this_tag"
+echo "Last tag: $last_tag"
+
+mkdir -p check
+out=check/check.$this_tag
+> $out
+make C=2 M=net/wireless 2>&1 | grep ':' >>$out
+make C=2 M=net/mac80211 2>&1 | grep ':' >>$out
+make C=2 M=drivers/net/wireless 2>&1 | grep ':' >>$out
+
+diff_out=check/check.${this_tag}.diff
+last_out=check/check.$last_tag
+if [[ -e $last_out ]]; then
+	diff -u $last_out $out | tee $diff_out
+fi

@@ -82,5 +82,4 @@ done
 
 tag=wt-`date +%Y-%m-%d`
 git tag -a $tag -m "Wireless-testing build $tag"
-git push origin +master
-git push origin $tag
+./wt-push
