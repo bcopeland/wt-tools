@@ -1,23 +1,32 @@
 #!/bin/bash
-# run static analysis for today's tag, and also generate the diff from the
-# previous tag.
+# run static analysis for a range of dates, outputting diffs for each new
+# revision.
 
-last_two_tags=$(git tag -l 'wt-*' --sort=-refname | head -2)
-this_tag=$(echo "$last_two_tags" | sed -n -e '1p')
-last_tag=$(echo "$last_two_tags" | sed -n -e '2p')
+start_date=${1:-$(date +%Y-%m-%d -d yesterday)}
+end_date=${2:-$(date +%Y-%m-%d)}
 
-echo "This tag: $this_tag"
-echo "Last tag: $last_tag"
+tags=$(git tag -l 'wt-*' | \
+       awk '($1 >= "wt-'$start_date'") && ($1 <= "wt-'$end_date'")')
 
-mkdir -p check
-out=check/check.$this_tag
-> $out
-make C=2 M=net/wireless 2>&1 | grep ':' >>$out
-make C=2 M=net/mac80211 2>&1 | grep ':' >>$out
-make C=2 M=drivers/net/wireless 2>&1 | grep ':' >>$out
+last_tag=''
+for tag in $tags; do
+	mkdir -p check
+	out=check/check.$tag
+	if [[ ! -e $out ]]; then
+		echo "Check $tag"
+		git checkout $tag
+		make C=2 M=net/wireless 2>&1 | grep ':' | grep -v 'bio' >>$out
+		make C=2 M=net/mac80211 2>&1 | grep ':' | grep -v 'bio' >>$out
+		make C=2 M=drivers/net/wireless 2>&1 | grep ':' | grep -v 'bio' >>$out
+	fi
+	if [[ ! -z $last_tag ]]; then
+		echo "*** $tag ***"
+		diff_out=${out}.diff
+		last_out=check/check.$last_tag
+		diff -u <(sed 's/:[0-9]*//g' $last_out) \
+			<(sed 's/:[0-9]*//g' $out) | tee $diff_out
+	fi
+	last_tag=$tag
+done
+git checkout master
 
-diff_out=check/check.${this_tag}.diff
-last_out=check/check.$last_tag
-if [[ -e $last_out ]]; then
-	diff -u $last_out $out | tee $diff_out
-fi
