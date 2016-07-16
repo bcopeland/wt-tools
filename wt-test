@@ -1,0 +1,39 @@
+#!/bin/bash
+set -e
+
+out=`/bin/pwd`/check/wt-test.`date +%Y-%m-%d`
+
+cd $(dirname $(readlink $0))
+tools=`/bin/pwd`
+
+pushd ../wt-test
+
+# update and build the kernel
+git pull --rebase
+make olddefconfig
+make -j4
+
+KERNELDIR=`/bin/pwd`
+
+# build hostapd and run tests
+if [ -d hostap ]; then
+    (cd hostap && git pull)
+else
+    git clone --depth 1 git://w1.fi/hostap.git
+fi
+
+cd hostap/wpa_supplicant
+cp $tools/wpa_supplicant.config .config
+make clean all
+cd ../hostapd
+cp $tools/hostapd.config .config
+make clean all
+cd ../wlantest
+make clean all
+cd ../tests/hwsim/vm
+echo "KERNELDIR=$KERNELDIR" >> vm-config
+
+mkdir -p $(basename $out)
+./parallel-vm.sh 2 > $out
+
+popd
