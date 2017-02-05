@@ -19,6 +19,13 @@ function merge_tree()
 	fi
 }
 
+function log()
+{
+	local msg=$1
+	now=$(date +%Y-%m-%dT%H:%M:%S)
+	echo "$now $msg"
+}
+
 trees="wireless-drivers wireless-drivers-next mac80211 mac80211-next"
 
 # fetch all the trees
@@ -42,19 +49,19 @@ if [[ $ret -eq 0 ]]; then
 fi
 
 if [[ $latest != $old_linus ]]; then
-	echo "linus is updated"
+	log "Linus is updated"
 	changed=1
 fi
 for tree in $trees; do
 	old=$(cat .wtref.${tree})
 	if [[ $old != $(git show-ref -s $tree/master) ]]; then
-		echo "$tree is updated"
+		log "$tree is updated"
 		changed=1
 	fi
 done
 
 if [[ $changed -eq 0 ]]; then
-	echo "No changes upstream, nothing to do!"
+	log "No changes upstream, nothing to do!"
 	exit 0
 fi
 
@@ -65,6 +72,9 @@ git reset --hard $latest
 for tree in $trees; do
 	merge_tree $tree || exit 1
 done
+
+# Optional: cherry-pick some bugfix during a series
+# git cherry-pick 261a422e739890ba96330f1b1cf67a1a1d68e9a5
 
 # label the build
 echo '-wt' > localversion-wireless-testing
