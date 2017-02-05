@@ -6,8 +6,11 @@ if [[ ! -z $WT_SSH ]]; then
 	export GIT_SSH=$WT_SSH
 fi
 
+today=`date +%Y-%m-%d`
 remote=${1:-origin}
-tag=wt-`date +%Y-%m-%d`
+datestr=${2:-$today}
+
+tag=wt-$datestr
 git show-ref -s $tag > /dev/null
 ret=$?
 if [[ $ret -ne 0 ]]; then
@@ -16,3 +19,7 @@ if [[ $ret -ne 0 ]]; then
 fi
 git push $remote +master
 git push $remote $tag
+
+# Also push any new linus tags
+linus=$(cat .wtref.linus)
+git push $remote $linus
