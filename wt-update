@@ -68,6 +68,9 @@ fi
 # Start with latest linus tag
 git reset --hard $latest
 
+# Merge net-next, to avoid net/net-next conflicts
+merge_tree net-next || exit 1
+
 # Merge wireless trees
 for tree in $trees; do
 	merge_tree $tree || exit 1
