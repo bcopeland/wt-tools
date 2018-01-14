@@ -29,7 +29,7 @@ function log()
 trees="wireless-drivers wireless-drivers-next mac80211 mac80211-next"
 
 # fetch all the trees
-for tree in linus $trees; do
+for tree in linus net-next $trees; do
 	git fetch $tree
 done
 
