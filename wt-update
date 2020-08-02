@@ -93,7 +93,7 @@ git add localversion-wireless-testing
 git commit -m 'Add localversion to identify builds from this tree' -s
 
 # everything merged, compile test and push result
-make -j8 || exit 2
+make -j 48 || exit 2
 
 # all good, publish
 echo $latest > .wtref.linus
