@@ -8,19 +8,27 @@ if [[ ! -z $WT_SSH ]]; then
 fi
 
 today=`date +%Y-%m-%d`
-remote=${1:-origin}
-datestr=${2:-$today}
+tag=${1:-wt-$today}
+shift
+remotes="$*"
 
-tag=wt-$datestr
+if [ -z $remotes ]; then
+	remotes="origin github"
+fi
+
 git show-ref -s $tag > /dev/null
 ret=$?
 if [[ $ret -ne 0 ]]; then
 	echo "Tag $tag not found."
 	exit 1
 fi
-git push $remote +master
-git push $remote $tag
 
-# Also push any new linus tags
-linus=$(cat .wtref.linus)
-git push $remote $linus
+for remote in $remotes; do
+	echo "Pushing to $remote..."
+	git push $remote +master
+	git push $remote $tag
+
+	# Also push any new linus tags
+	linus=$(cat .wtref.linus)
+	git push $remote $linus
+done
