@@ -11,11 +11,19 @@ function merge_tree()
 	if [[ ! $ret -eq 0 ]]; then
 		# check if rerere fixed it
 		if [[ $(git rerere diff | wc -l) -eq 0 ]]; then
-			git commit --no-edit
-			return
-		else
-			exit 1
+			git commit --no-edit && return
 		fi
+
+		# accept deletes if there's a delete/update conflict
+		git status --porcelain --untracked-files=no | \
+			awk '{if ($1 == "DU") { print $2 } }' | \
+			xargs git rm
+		git rm drivers/isdn/gigaset/i4l.c drivers/isdn/hisax/hfc_usb.c
+		git commit --no-edit && return
+
+		# out of luck
+		echo "could not merge"
+		exit 1
 	fi
 }
 
