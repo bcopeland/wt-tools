@@ -4,6 +4,7 @@
 # customize GIT_SSH if needed (for askpass etc)
 if [[ ! -z $WT_SSH ]]; then
 	export GIT_SSH=$WT_SSH
+	export GPG_TTY=$(tty)
 fi
 
 today=`date +%Y-%m-%d`
