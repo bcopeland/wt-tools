@@ -6,7 +6,8 @@
 function merge_tree()
 {
 	local tree=$1
-	git merge --no-ff --no-edit --rerere-autoupdate $tree/master
+	local ref=$2
+	git merge --no-ff --no-edit --rerere-autoupdate $tree/$ref
 	ret=$?
 	if [[ ! $ret -eq 0 ]]; then
 		# check if rerere fixed it
@@ -34,7 +35,7 @@ function log()
 	echo "$now $msg"
 }
 
-trees="wireless-drivers wireless-drivers-next mac80211 mac80211-next"
+trees="wireless wireless-next"
 
 # fetch all the trees
 for tree in linus net-next $trees; do
@@ -62,7 +63,7 @@ if [[ $latest != $old_linus ]]; then
 fi
 for tree in $trees; do
 	old=$(cat .wtref.${tree})
-	if [[ $old != $(git show-ref -s $tree/master) ]]; then
+	if [[ $old != $(git show-ref -s $tree/main) ]]; then
 		log "$tree is updated"
 		changed=1
 	fi
@@ -77,11 +78,11 @@ fi
 git reset --hard $latest
 
 # Merge net-next, to avoid net/net-next conflicts
-merge_tree net-next || exit 1
+merge_tree net-next master || exit 1
 
 # Merge wireless trees
 for tree in $trees; do
-	merge_tree $tree || exit 1
+	merge_tree $tree main || exit 1
 done
 
 # Optional: cherry-pick some bugfix during a series
@@ -98,7 +99,7 @@ make -j 48 || exit 2
 # all good, publish
 echo $latest > .wtref.linus
 for tree in $trees; do
-	git show-ref -s $tree/master > .wtref.${tree}
+	git show-ref -s $tree/main > .wtref.${tree}
 done
 
 tag=wt-`date +%Y-%m-%d`
