@@ -19,7 +19,6 @@ function merge_tree()
 		git status --porcelain --untracked-files=no | \
 			awk '{if ($1 == "DU") { print $2 } }' | \
 			xargs git rm
-		git rm drivers/isdn/gigaset/i4l.c drivers/isdn/hisax/hfc_usb.c
 		git commit --no-edit && return
 
 		# out of luck
