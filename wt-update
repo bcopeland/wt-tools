@@ -37,7 +37,7 @@ function log()
 trees="wireless wireless-next"
 
 # fetch all the trees
-for tree in linus net-next $trees; do
+for tree in linus $trees; do
 	git fetch $tree
 done
 
@@ -75,9 +75,6 @@ fi
 
 # Start with latest linus tag
 git reset --hard $latest
-
-# Merge net-next, to avoid net/net-next conflicts
-merge_tree net-next master || exit 1
 
 # Merge wireless trees
 for tree in $trees; do
